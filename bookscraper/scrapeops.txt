@@ -1,0 +1,1 @@
+curl 'https://proxy.scrapeops.io/v1/?api_key=6180088d-44c0-46b8-b49b-e13d76c89d05&url=https://https://www.techpowerup.com' > test.html

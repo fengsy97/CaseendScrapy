@@ -8,6 +8,17 @@ from scrapy import signals
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
 
+class CustomProxyMiddleware(object):
+    def __init__(self):
+        self.proxy = 'http://20.206.106.192:80'
+    
+    def process_request(self, request, spider):
+        if 'proxy' not in request.meta:
+            request.meta['proxy'] = self.proxy
+    
+    def get_proxy(self):
+        return self.proxy
+
 
 class BookscraperSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
@@ -69,6 +80,8 @@ class BookscraperDownloaderMiddleware:
         return s
 
     def process_request(self, request, spider):
+        # request.headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64; rv:7.0.1) Gecko/20100101 Firefox/7.7"
+        # request.meta["proxy"] = "http://173.212.220.213:20939"
         # Called for each request that goes through the downloader
         # middleware.
 
@@ -81,6 +94,7 @@ class BookscraperDownloaderMiddleware:
         return None
 
     def process_response(self, request, response, spider):
+        
         # Called with the response returned from the downloader.
 
         # Must either;
@@ -101,3 +115,4 @@ class BookscraperDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+    
