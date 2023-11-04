@@ -22,29 +22,39 @@ class BooksSpider(scrapy.Spider):
 
     def start_requests(self):
         # url = 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html'
-        # url = 'https://www.techpowerup.com/gpu-specs/?mfgr=AMD&mobile=No&igp=No&sort=name'
-        url = 'https://www.techpowerup.com/gpu-specs/?mfgr=NVIDIA&mobile=No&workstation=No&igp=No&sort=name'
+        url = 'https://www.techpowerup.com/gpu-specs/?mfgr=AMD&mobile=No&workstation=No&igp=No&sort=name'
+        # url = 'https://www.techpowerup.com/gpu-specs/?mfgr=NVIDIA&mobile=No&workstation=No&igp=No&sort=name'
         yield scrapy.Request(url, callback=self.parse,headers={"User-Agent": self.user_agent_list[random.randint(0, len(self.user_agent_list)-1)]})
 
     def parse(self, response):
         # item = {}
         pres = "https://www.techpowerup.com"
         count = 0
-        for url in response.css('td.vendor-NVIDIA a::attr(href)').getall():
+        for url in response.css('td.vendor-AMD a::attr(href)').getall():
             print(pres+url)
             count += 1
             yield scrapy.Request(pres+url,  callback=self.parse_products,dont_filter=True,headers={"User-Agent": self.user_agent_list[random.randint(0, len(self.user_agent_list)-1)]})
-            # if count > 2:
-                # break
+            # if count > 3:
+            #     break
             time.sleep(1)
         
 
     def parse_products(self, response):
         pres = "https://www.techpowerup.com"
+        performance = 20000
+        try:
+            performance = response.css('div.gpudb-relative-performance-entry__number::text')[-1].extract()
+            gpuname = response.css('a.gpudb-relative-performance-entry__link::text')[-1].extract()
+            print(gpuname," performance ",performance)
+            performance = performance.replace("\n","").replace("\t","").replace("\r","").replace("%","")
+            performance = int(performance)
+        except:
+            print("no performance ",response.css('h1.gpudb-name::text'))
+        # return
         for url in response.css('div.board-table-title__inner a::attr(href)').getall():
             print("url",url)
             yield scrapy.Request(pres+url ,callback=self.pasre_Gpu,
-                                 dont_filter=True,headers={"User-Agent": self.user_agent_list[random.randint(0, len(self.user_agent_list)-1)]})
+                                 dont_filter=True,headers={"User-Agent": self.user_agent_list[random.randint(0, len(self.user_agent_list)-1)]}, meta={'performance':10000//performance})
             time.sleep(1)
             # print("my_dict:",self.my_dict)
 
@@ -54,6 +64,7 @@ class BooksSpider(scrapy.Spider):
         print("GPU ",gpuname)
         self.my_dict[gpuname] = {}
         self.my_dict[gpuname]["gpuname"] = gpuname
+        self.my_dict[gpuname]["performance"] = response.meta['performance']
         sepcs_values =  response.css('dl.clearfix')
         for sep_val in sepcs_values:
             spec = sep_val.css('dl.clearfix dt::text').get()
@@ -66,15 +77,19 @@ class BooksSpider(scrapy.Spider):
                 print("gpuname", gpuname ,"spec:",spec,"value:",value)
                 value = ""
             self.my_dict[gpuname][spec] = value.replace("\n","").replace("\t","").replace("\r","")
-            # for i in range(len(sepcs)):
-                # self.my_dict[gpuname][sepcs[i]] = values[i]
-        # values = response.css('dl.clearfix dd::text').getall()
-        # for i in range(len(sepcs)):
-            # self.my_dict[gpuname][sepcs[i]] = values[i]
-            # break
-        # print("my_dict:",self.my_dict)
-        # json.dumps(self.my_dict)
-        json.dump( self.my_dict, open( "NVIDIA.json", 'w' ) )
+        mainimage = response.css('a.gpudb-large-image__item').get()
+        if(mainimage):
+            mainimage = mainimage.split('href="')[1].split('"')[0]
+            self.my_dict[gpuname]["mainimage"] = mainimage
+        images = response.css('img.gpudb-filmstrip__img')
+        links = []
+        if(images):
+            for image in images:
+                image = image.css('img::attr(src)').get()
+                links.append(image)
+            self.my_dict[gpuname]["images"] = links
+
+        json.dump( self.my_dict, open( "AMD.json", 'w' ) )
     
 
 # mytag::text
